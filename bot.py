@@ -1,4 +1,5 @@
 import socket
+import os
 
 HOST = 'irc.twitch.tv'
 PORT = 6667
@@ -37,7 +38,38 @@ def is_cheer(message):
 
 
 def get_cheer_contents(message):
-    return 0, ''
+    message = str(message)
+    bits = 0
+
+    for cheer in CHEERS:
+        if cheer in message:
+            bits += int(message.split(cheer)[1].split(' ')[0])
+
+    return bits
+
+
+def get_string_as_float(string):
+    buffer = ''
+
+    for char in string:
+        if char.isdigit() or char == '.':
+            buffer += char
+
+    return float(buffer)
+
+
+def get_squat_count():
+    if os.path.exists('squats.txt'):
+        f = open('squats.txt', 'r')
+        if f.mode == 'r':
+            return get_string_as_float(f.read())
+
+    return 0
+
+
+def set_squat_count(number_of_squats):
+    f = open('squats.txt', 'w+', encoding='utf-16')
+    f.write(str(number_of_squats))
 
 
 s = socket.socket()
@@ -48,7 +80,6 @@ write_to_system('USER ' + NAME + ' 0 * ' + NAME)
 write_to_system('JOIN #' + CHANNEL)
 
 connectBuffer = ""
-buffer = ""
 
 while True:
     connectBuffer += str(s.recv(1024))
@@ -69,10 +100,10 @@ while True:
         username = line.split('!')[1].split('@')[0]
         message = line.split(':')[2]
         if message == '!squats':
-            write_to_chat('This boy has 1324234 squats left!')
+            write_to_chat('This boy has ' + str(int(get_squat_count())) + ' squats left!')
         elif is_cheer(message):
-            bits, message = get_cheer_contents(message)
-            pass
+            bits = get_cheer_contents(message)
+            set_squat_count(get_squat_count() + (bits / 4))
 
     print(line)
 
